@@ -1,42 +1,36 @@
-import React, { FC, useEffect, useState } from 'react';
+import React, { FC, useEffect } from 'react';
 import { useParams } from 'react-router';
 import { ArrowDownTrayIcon, PrinterIcon } from '@heroicons/react/24/solid';
 
 import '../assets/css/Registration.css';
 import Layout from './components/Layout';
 import SunAsterisk from './components/SunAsterisk';
+import useUser from '../utilities/hooks/useUser';
 import { axios } from '../utilities/axios/axios';
-import { QrCode } from '../utilities/interfaces/QrCode';
+import ImageSkeletonIcon from './components/Icons/ImageSkeletonIcon';
+import BarSkeletonIcon from './components/Icons/BarSkeletonIcon';
 
 const ThankYou: FC = () => {
-  const [code, setCode] = useState<QrCode>();
   const { id } = useParams();
-
+  const { fetchUser, user, isLoading, isError } = useUser();
   useEffect(() => {
-    axios.get(`api/thank-you/${id}`).then((res) => {
-      setCode(res.data.qrCodeDataUri);
-    });
-  }, []);
+    if (id) fetchUser(parseInt(id));
+  }, [id]);
 
-  const handleDownload = () => {
-    const link = document.createElement('a');
-    if (code) {
-      link.href = code.toString();
-      link.download = 'qrcode.svg';
-      link.click();
-    }
+  const handleDownload = async () => {
+    const res = await axios.get(`/api/attachments/${user?.attachments[1].id}`);
+    const anchorElement = document.createElement('a');
+    anchorElement.href = res.data as string;
+    anchorElement.download = 'QR_Code.svg';
+    anchorElement.click();
+    anchorElement.remove();
   };
 
   const handlePrint = () => {
-    const printWindow = window.open('', '_blank');
-    printWindow?.document.write(
-      '<html><head><title>QR Code</title></head><body>'
+    const popup = window.open();
+    popup?.document.write(
+      `<html><body style="display:flex; align-items: center; justify-content:center;"><img style="width:400px;" onload="window.print()" src="${user?.attachments[1].url}"/></body></html>`
     );
-    printWindow?.document.write(
-      `<img src="${code}" style="width: 50%; height: 50%;" />`
-    );
-    printWindow?.document.close();
-    printWindow?.print();
   };
 
   return (
@@ -65,22 +59,40 @@ const ThankYou: FC = () => {
             </div>
           </div>
           <div className='flex flex-col space-y-5 items-center w-full max-w-sm rounded-lg shadow-lg p-10  bg-white'>
-            <img src={`${code}`} alt='Sample QR' className=' w-72 h-72' />
+            {isLoading || isError ? (
+              <ImageSkeletonIcon className='w-72 h-72' />
+            ) : (
+              <img
+                id='qr_code'
+                className=' w-72 h-72'
+                src={user?.attachments[1].url}
+                alt='QR code'
+              />
+            )}
             <div className='flex flex-col space-y-2'>
-              <button
-                className='p-2 w-72 flex items-center justify-center space-x-2 text-xs font-semibold text-gray-700 bg-white border-4 border-gray-600 rounded-md hover:bg-gray-200 hover:border-gray-700'
-                onClick={handleDownload}
-              >
-                <ArrowDownTrayIcon className='w-5 h-5' />
-                <span>Download QR Code</span>
-              </button>
-              <button
-                className='p-2 w-72 flex items-center justify-center space-x-2 text-xs bg-gray-700 border-4 border-gray-700 text-white rounded-md hover:bg-gray-600 hover:border-gray-600'
-                onClick={handlePrint}
-              >
-                <PrinterIcon className='w-5 h-5' />
-                <span>Print QR Code</span>
-              </button>
+              {isLoading || isError ? (
+                <>
+                  <BarSkeletonIcon className='w-72 rounded-md h-10' />
+                  <BarSkeletonIcon className='w-72 rounded-md h-10' />
+                </>
+              ) : (
+                <>
+                  <button
+                    className='p-2 w-72 flex items-center justify-center space-x-2 text-xs font-semibold text-gray-700 bg-white border-4 border-gray-600 rounded-md hover:bg-gray-200 hover:border-gray-700'
+                    onClick={handleDownload}
+                  >
+                    <ArrowDownTrayIcon className='w-5 h-5' />
+                    <span>Download QR Code</span>
+                  </button>
+                  <button
+                    className='p-2 w-72 flex items-center justify-center space-x-2 text-xs bg-gray-700 border-4 border-gray-700 text-white rounded-md hover:bg-gray-600 hover:border-gray-600'
+                    onClick={handlePrint}
+                  >
+                    <PrinterIcon className='w-5 h-5' />
+                    <span>Print QR Code</span>
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

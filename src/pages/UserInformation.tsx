@@ -4,7 +4,6 @@ import SunAsterisk from './components/SunAsterisk';
 import { useParams } from 'react-router-dom';
 import useUser from '../utilities/hooks/useUser';
 import moment from 'moment';
-import UserInformationLoading from './components/UserInformationLoading';
 import {
   ArrowDownTrayIcon,
   CalendarIcon,
@@ -13,36 +12,29 @@ import {
   PhoneIcon,
   PrinterIcon,
 } from '@heroicons/react/24/outline';
+import { axios } from '../utilities/axios/axios';
+import UserInformationLoading from './components/UserInformationLoading';
 
 const UserInformation: FC = () => {
   const { id } = useParams();
-  const { fetchUser, user, qrCode, isLoading, isError } = useUser();
+  const { fetchUser, user, isLoading, isError } = useUser();
   useEffect(() => {
     if (id) fetchUser(parseInt(id));
   }, [id]);
-  const handleClickDownload = () => {
+  const handleClickDownload = async () => {
+    const res = await axios.get(`/api/attachments/${user?.attachments[1].id}`);
     const anchorElement = document.createElement('a');
-    anchorElement.href =
-      user?.attachments && user?.attachments.length > 1
-        ? user?.attachments[1].url
-        : '/images/qr-sample.png';
-    anchorElement.download = 'QR_Code.jpeg';
+    anchorElement.href = res.data as string;
+    anchorElement.download = 'QR_Code.svg';
     anchorElement.click();
     anchorElement.remove();
   };
   const handleClickPrint = () => {
-    const popup = window.open(
-      user?.attachments && user?.attachments.length > 1
-        ? user?.attachments[1].url
-        : '/images/qr-sample.png'
+    const popup = window.open();
+    popup?.document.write(
+      `<html><body style="display:flex; align-items: center; justify-content:center;"><img style="width:400px;" onload="window.print()" src="${user?.attachments[1].url}"/></body></html>`
     );
-    popup?.focus();
-    popup?.print();
   };
-  const avatarAttachments = user?.attachments?.filter(
-    (attachment) => attachment.type === 'avatar'
-  );
-
   return (
     <Layout>
       <main className='flex items-center flex-col w-full mx-auto max-w-5xl justify-center'>
@@ -56,15 +48,11 @@ const UserInformation: FC = () => {
           ) : (
             <>
               <div className='py-20 px-32 w-full max-w-lg mx-auto'>
-                {avatarAttachments?.map((attachment) => (
-                  <img
-                    key={attachment.id}
-                    className='h-52 w-52 mb-6 object-cover rounded shadow-md'
-                    src={attachment.url}
-                    alt='Profile Picture'
-                  />
-                ))}
-
+                <img
+                  className='h-52 w-52 mb-6 object-cover rounded shadow-md'
+                  src={user?.attachments[0].url}
+                  alt='Profile Picture'
+                />
                 <div className='text-xl font-bold p-1.5'>{user?.name}</div>
                 <div className='flex flex-row p-1.5'>
                   <HomeIcon className='w-6 h-6' />
@@ -93,7 +81,7 @@ const UserInformation: FC = () => {
                   <img
                     id='qr_code'
                     className='h-52 w-52 object-cover rounded shadow-md mb-6'
-                    src={`${qrCode}`}
+                    src={user?.attachments[1].url}
                     alt='QR code'
                   />
                 ) : (

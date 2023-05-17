@@ -5,14 +5,12 @@ import { User } from '../interfaces/User';
 import { handleAxiosError } from '../axios/handleAxiosError';
 import { AxiosError } from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { QrCode } from '../interfaces/QrCode';
 
 const useUser = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isError, setIsError] = useState<boolean>(false);
   const [user, setUser] = useState<User | null>(null);
-  const [qrCode, setQrCode] = useState<string>();
 
   const registerUser = async (data: Registration, callback: () => void) => {
     setIsLoading(true);
@@ -42,10 +40,9 @@ const useUser = () => {
   const fetchUser = async (user_id: number) => {
     setIsLoading(true);
     await axios
-      .get<QrCode>(`/api/user-information/${user_id}`)
+      .get<User>(`/api/users/${user_id}`)
       .then((res) => {
-        setUser(res.data.user);
-        setQrCode(res.data.qrCodeDataUri);
+        setUser(res.data);
       })
       .catch((e: Error | AxiosError) =>
         handleAxiosError(e, () => setIsError(true))
@@ -55,7 +52,6 @@ const useUser = () => {
 
   return {
     user,
-    qrCode,
     isLoading,
     isError,
     registerUser,
